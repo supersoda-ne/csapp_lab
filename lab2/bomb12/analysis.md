@@ -79,8 +79,8 @@ So the answer is:
  8048cfd:	e8 66 fb ff ff       	call   8048868 <sscanf@plt>
 ```
 ```
-(gdb) print (char*) 0x80499b4
-$21 = 0x80499b4 "%d"
+(gdb) x/s 0x80499b4
+0x80499b4:      "%d"
 ```
 Read 1 int.
 ```
@@ -119,3 +119,53 @@ func4 will recurrsively run until param goes down to 0. And it will multiply eac
 `x! == 0x2d0`
 The answer is
 `6`
+
+### phase 5
+input format:
+```
+ 8048d49:	c7 44 24 04 8b 99 04 	movl   $0x804998b,0x4(%esp)
+ 8048d50:	08 
+ 8048d51:	8b 45 08             	mov    0x8(%ebp),%eax
+ 8048d54:	89 04 24             	mov    %eax,(%esp)
+ 8048d57:	e8 0c fb ff ff       	call   8048868 <sscanf@plt>
+```
+```
+(gdb) x/s 0x804998b
+0x804998b:      "%d %d"
+```
+Input 2 integers.
+
+```
+ 8048d87:	eb 16                	jmp    8048d9f <phase_5+0x6a>
+ 8048d89:	ff 45 f0             	incl   -0x10(%ebp)
+
+ 8048d8c:	8b 45 ec             	mov    -0x14(%ebp),%eax
+ 8048d8f:	8b 04 85 c0 a5 04 08 	mov    0x804a5c0(,%eax,4),%eax
+ 8048d96:	89 45 ec             	mov    %eax,-0x14(%ebp)
+
+ 8048d99:	8b 45 ec             	mov    -0x14(%ebp),%eax
+ 8048d9c:	01 45 f4             	add    %eax,-0xc(%ebp)
+
+ 8048d9f:	8b 45 ec             	mov    -0x14(%ebp),%eax
+ 8048da2:	83 f8 0f             	cmp    $0xf,%eax
+ 8048da5:	75 e2                	jne    8048d89 <phase_5+0x54>
+ 8048da7:	83 7d f0 08          	cmpl   $0x8,-0x10(%ebp)
+ 8048dab:	75 08                	jne    8048db5 <phase_5+0x80>
+ 8048dad:	8b 45 e8             	mov    -0x18(%ebp),%eax
+ 8048db0:	39 45 f4             	cmp    %eax,-0xc(%ebp)
+ 8048db3:	74 05                	je     8048dba <phase_5+0x85>
+```
+Here is a complex loop. 
+1. `-0x10(%ebp)` incr each time during the loop. At the end of the loop it has to be `0x8`. Before that, we will execute 8 times.
+2. In the loop, `-0x14(%ebp)` will be updated with `0x804a5c0(,%eax,4)`. I'v found all of the 16 values for it. Those are:`[10, 2, 14, 7, 8, 12, 15, 11, 0, 4, 1, 13, 3, 9, 6, 5]`
+3. At the end of the loop, `-0x14(%ebp)` suppose to be `0xf` or `15`.
+4. The `-0xc(%ebp)` records the sum of each `-0x14(%ebp)`, and it should equals to the second input value.
+
+From 1~3, we can imagine the value sequence of `-0x14(%ebp)` from the last one `15` to the first `4`.
+
+And then we sum up this sequence to get the value of the second input. That is `56`.
+
+So the answer is `4 56`
+
+### phase 6
+

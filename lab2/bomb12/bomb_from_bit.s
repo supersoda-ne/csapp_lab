@@ -534,13 +534,17 @@ Disassembly of section .text:
  8048d76:	89 45 f8             	mov    %eax,-0x8(%ebp)
  8048d79:	c7 45 f0 00 00 00 00 	movl   $0x0,-0x10(%ebp)
  8048d80:	c7 45 f4 00 00 00 00 	movl   $0x0,-0xc(%ebp)
+ 
  8048d87:	eb 16                	jmp    8048d9f <phase_5+0x6a>
  8048d89:	ff 45 f0             	incl   -0x10(%ebp)
+
  8048d8c:	8b 45 ec             	mov    -0x14(%ebp),%eax
  8048d8f:	8b 04 85 c0 a5 04 08 	mov    0x804a5c0(,%eax,4),%eax
  8048d96:	89 45 ec             	mov    %eax,-0x14(%ebp)
+
  8048d99:	8b 45 ec             	mov    -0x14(%ebp),%eax
  8048d9c:	01 45 f4             	add    %eax,-0xc(%ebp)
+
  8048d9f:	8b 45 ec             	mov    -0x14(%ebp),%eax
  8048da2:	83 f8 0f             	cmp    $0xf,%eax
  8048da5:	75 e2                	jne    8048d89 <phase_5+0x54>
