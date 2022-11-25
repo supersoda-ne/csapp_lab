@@ -558,6 +558,7 @@ Disassembly of section .text:
  8048dbb:	c3                   	ret    
 
 08048dbc <fun6>:
+// bb1
  8048dbc:	55                   	push   %ebp
  8048dbd:	89 e5                	mov    %esp,%ebp
  8048dbf:	83 ec 10             	sub    $0x10,%esp
@@ -571,33 +572,41 @@ Disassembly of section .text:
  8048dd7:	8b 45 f0             	mov    -0x10(%ebp),%eax
  8048dda:	c7 40 08 00 00 00 00 	movl   $0x0,0x8(%eax)
  8048de1:	eb 62                	jmp    8048e45 <fun6+0x89>
+// bb2
  8048de3:	8b 45 f0             	mov    -0x10(%ebp),%eax
  8048de6:	89 45 fc             	mov    %eax,-0x4(%ebp)
  8048de9:	8b 45 f0             	mov    -0x10(%ebp),%eax
  8048dec:	89 45 f8             	mov    %eax,-0x8(%ebp)
  8048def:	eb 0f                	jmp    8048e00 <fun6+0x44>
+// bb3
  8048df1:	8b 45 fc             	mov    -0x4(%ebp),%eax
  8048df4:	89 45 f8             	mov    %eax,-0x8(%ebp)
  8048df7:	8b 45 fc             	mov    -0x4(%ebp),%eax
  8048dfa:	8b 40 08             	mov    0x8(%eax),%eax
  8048dfd:	89 45 fc             	mov    %eax,-0x4(%ebp)
+// bb4
  8048e00:	83 7d fc 00          	cmpl   $0x0,-0x4(%ebp)
  8048e04:	74 0e                	je     8048e14 <fun6+0x58>
+// bb5
  8048e06:	8b 45 fc             	mov    -0x4(%ebp),%eax
  8048e09:	8b 10                	mov    (%eax),%edx
  8048e0b:	8b 45 f4             	mov    -0xc(%ebp),%eax
  8048e0e:	8b 00                	mov    (%eax),%eax
  8048e10:	39 c2                	cmp    %eax,%edx
  8048e12:	7f dd                	jg     8048df1 <fun6+0x35>
+// bb6
  8048e14:	8b 45 f8             	mov    -0x8(%ebp),%eax
  8048e17:	3b 45 fc             	cmp    -0x4(%ebp),%eax
  8048e1a:	74 0b                	je     8048e27 <fun6+0x6b>
+ // bb7
  8048e1c:	8b 55 f8             	mov    -0x8(%ebp),%edx
  8048e1f:	8b 45 f4             	mov    -0xc(%ebp),%eax
  8048e22:	89 42 08             	mov    %eax,0x8(%edx)
  8048e25:	eb 06                	jmp    8048e2d <fun6+0x71>
+// bb8
  8048e27:	8b 45 f4             	mov    -0xc(%ebp),%eax
  8048e2a:	89 45 f0             	mov    %eax,-0x10(%ebp)
+// bb9
  8048e2d:	8b 45 f4             	mov    -0xc(%ebp),%eax
  8048e30:	8b 40 08             	mov    0x8(%eax),%eax
  8048e33:	89 45 f8             	mov    %eax,-0x8(%ebp)
@@ -606,8 +615,10 @@ Disassembly of section .text:
  8048e3c:	89 42 08             	mov    %eax,0x8(%edx)
  8048e3f:	8b 45 f8             	mov    -0x8(%ebp),%eax
  8048e42:	89 45 f4             	mov    %eax,-0xc(%ebp)
+// bb10
  8048e45:	83 7d f4 00          	cmpl   $0x0,-0xc(%ebp)
  8048e49:	75 98                	jne    8048de3 <fun6+0x27>
+// bb11
  8048e4b:	8b 45 f0             	mov    -0x10(%ebp),%eax
  8048e4e:	c9                   	leave  
  8048e4f:	c3                   	ret    
@@ -629,14 +640,18 @@ Disassembly of section .text:
  8048e7a:	89 45 f8             	mov    %eax,-0x8(%ebp)
  8048e7d:	8b 45 f8             	mov    -0x8(%ebp),%eax
  8048e80:	89 45 fc             	mov    %eax,-0x4(%ebp)
+
  8048e83:	c7 45 f4 01 00 00 00 	movl   $0x1,-0xc(%ebp)
  8048e8a:	eb 0c                	jmp    8048e98 <phase_6+0x48>
+
  8048e8c:	8b 45 fc             	mov    -0x4(%ebp),%eax
  8048e8f:	8b 40 08             	mov    0x8(%eax),%eax
  8048e92:	89 45 fc             	mov    %eax,-0x4(%ebp)
  8048e95:	ff 45 f4             	incl   -0xc(%ebp)
+
  8048e98:	83 7d f4 07          	cmpl   $0x7,-0xc(%ebp)
  8048e9c:	7e ee                	jle    8048e8c <phase_6+0x3c>
+
  8048e9e:	8b 45 fc             	mov    -0x4(%ebp),%eax
  8048ea1:	8b 10                	mov    (%eax),%edx
  8048ea3:	a1 6c a6 04 08       	mov    0x804a66c,%eax

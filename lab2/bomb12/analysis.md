@@ -168,4 +168,54 @@ And then we sum up this sequence to get the value of the second input. That is `
 So the answer is `4 56`
 
 ### phase 6
+It calls `atof` and `func6`, and we will dig into that later.
 
+There is a loop structure after call site of `func6`.
+
+```
+ 8048e83:	c7 45 f4 01 00 00 00 	movl   $0x1,-0xc(%ebp)
+ 8048e8a:	eb 0c                	jmp    8048e98 <phase_6+0x48>
+
+ 8048e8c:	8b 45 fc             	mov    -0x4(%ebp),%eax
+ 8048e8f:	8b 40 08             	mov    0x8(%eax),%eax
+ 8048e92:	89 45 fc             	mov    %eax,-0x4(%ebp)
+ 8048e95:	ff 45 f4             	incl   -0xc(%ebp)
+
+ 8048e98:	83 7d f4 07          	cmpl   $0x7,-0xc(%ebp)
+ 8048e9c:	7e ee                	jle    8048e8c <phase_6+0x3c>
+```
+`-0xc(%ebp)` iterates from 1 to 7.
+
+And in the loop body, it read some value from the address `-0x4(%ebp)`, and then write it back to `-0x4(%ebp)`. It seems like link list.
+
+So this loop is going to get the 8th node of a link list.
+
+fun6
+`bb3, bb4, bb5`, loop until `p->val <= node1->val || p == NULL`
+
+So it is insertion sort.
+
+The input we need to provide should be the 8th biggest value. It's node4 `0xef (239)`.
+```
+(gdb) x/12a 0x0804a66c
+(gdb) x/4a 0x0804a66c
+0x804a66c <node0>:      0x0     0x0     0x804a660 <node1>       0x3e9
+(gdb) x/4a 0x804a660
+0x804a660 <node1>:      0x143   0x1     0x804a654 <node2>       0x0
+(gdb) x/4 0x804a654
+0x804a654 <node2>:      0x396   0x2     0x804a648 <node3>       0x143
+(gdb) x/4 0x804a648
+0x804a648 <node3>:      0x399   0x3     0x804a63c <node4>       0x396
+(gdb) x/4 0x804a63c
+0x804a63c <node4>:      0xef    0x4     0x804a630 <node5>       0x399
+(gdb) x/4 0x804a630
+0x804a630 <node5>:      0x97    0x5     0x804a624 <node6>       0xef
+(gdb) x/4 0x804a624
+0x804a624 <node6>:      0x356   0x6     0x804a618 <node7>       0x97
+(gdb) x/4 0x804a618
+0x804a618 <node7>:      0x201   0x7     0x804a60c <node8>       0x356
+(gdb) x/4 0x804a60c
+0x804a60c <node8>:      0x2cd   0x8     0x804a600 <node9>       0x201
+(gdb) x/4 0x804a600
+0x804a600 <node9>:      0x356   0x9     0x0     0x2cd
+```
