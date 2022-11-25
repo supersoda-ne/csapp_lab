@@ -219,3 +219,46 @@ The input we need to provide should be the 8th biggest value. It's node4 `0xef (
 (gdb) x/4 0x804a600
 0x804a600 <node9>:      0x356   0x9     0x0     0x2cd
 ```
+
+### Secret Phase
+Well, this is easier than p6, or I'm just luckily hit it.
+
+We need first insert some magic string behind the input of phase 4.
+```
+(gdb) x/s 0x8049e5a
+0x8049e5a:      "austinpowers"
+```
+`secret_phase` calls `fun7` with a new line of input, and ask for a return value of `0x7`.
+
+Randomly check some value in `fun7`, it visits something like `n1`, `n22`. We can find more of these `n[0-9]+` in `symbol_table.txt`. They are `n1`, `n21`, `n22`, `n31`,...,`n34`,...,`n41`, ...,`n48`. If you look into `fun7`, it is search a value on a BST. Each turn left will double the return value, and turn right will double and increase 1. To get `0x7`, we need go all the way right, to `n48`. So the answer should be the value of `n48`, that is `0x3e9 (1001)`
+```
+(gdb) x/a ($edx)
+0x804aa81 <input_strings+481>:  0x30
+(gdb) x/a $edx
+0x804aa81 <input_strings+481>:  0x30
+(gdb) x/a $eax
+0x804a720 <n1>: 0x24
+(gdb) x/a ($eax+8)
+0x804a728 <n1+8>:       0x804a708 <n22>
+```
+
+```
+(gdb) x/a 0x0804a678
+0x804a678 <n48>:        0x3e9
+```
+
+## Hurray
+```
+$ ./bomb < ./solution.txt 
+Welcome to my fiendish little bomb. You have 6 phases with
+which to blow yourself up. Have a nice day!
+Phase 1 defused. How about the next one?
+That's number 2.  Keep going!
+Halfway there!
+So you got that one.  Try this one.
+Good work!  On to the next...
+Curses, you've found the secret phase!
+But finding it and solving it are quite different...
+Wow! You've defused the secret stage!
+Congratulations! You've defused the bomb!
+```
