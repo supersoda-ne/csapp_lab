@@ -1,5 +1,5 @@
 # Lab 2
-## phase 1
+## Phase1
 
 It calls strings_not_equal with $0x8049958.
 
@@ -7,11 +7,9 @@ It must be a char* for a string.
 
 And we can peek its value with gdb print (char *) 0x8049958.
 
-So we got:
+So we got: `Why make trillions when we could make... billions?`
 
-`Why make trillions when we could make... billions?`
-
-## phase 2
+## Phase2
 
 ` 8048bb7:	e8 4c 04 00 00       	call   8049008 <read_six_numbers>`
 Read 6 numbers from input string.
@@ -32,11 +30,9 @@ And the next step is a loop. Its body looks like this.
 ```
 It basically read `a[i]` and `a[i+1]` from the 6 numbers, and try to compare `a[i] * l` with `a[i+1]`. `l` starts from `2` and `a[0]` is 1. 
 
-So we got:
+So we got: `1 2 6 24 120 720`
 
-`1 2 6 24 120 720`
-
-## phase 3
+## Phase3
 It reads 2 integer to `-0xc(%ebp)` and `-0x10(%ebp)`.
 
 It will check if the first integer is `0x7`.
@@ -65,13 +61,10 @@ Finally it will compare the second integer with `-0x8(%ebp)`
  8048ca7:	39 45 f8             	cmp    %eax,-0x8(%ebp)
 ```
 
-So the answer is:
-```
-7 902
-```
+So the answer is: `7 902`
 
 
-### phase 4
+### Phase4
 ```
  8048cef:	c7 44 24 04 b4 99 04 	movl   $0x80499b4,0x4(%esp)
  8048cf6:	08 
@@ -118,10 +111,9 @@ Check return value of func4 is 0x2d0 or not.
 ```
 func4 will recurrsively run until param goes down to 0. And it will multiply each param to inner result. So it calculates the factorial.
 `x! == 0x2d0`
-The answer is
-`6`
+The answer is: `6`
 
-### phase 5
+### Phase5
 input format:
 ```
  8048d49:	c7 44 24 04 8b 99 04 	movl   $0x804998b,0x4(%esp)
@@ -166,9 +158,9 @@ From 1~3, we can imagine the value sequence of `-0x14(%ebp)` from the last one `
 
 And then we sum up this sequence to get the value of the second input. That is `56`.
 
-So the answer is `4 56`
+So the answer is: `4 56`
 
-### phase 6
+### Phase6
 It calls `atof` and `func6`, and we will dig into that later.
 
 There is a loop structure after call site of `func6`.
@@ -191,10 +183,10 @@ And in the loop body, it read some value from the address `-0x4(%ebp)`, and then
 
 So this loop is going to get the 8th node of a link list.
 
-fun6
+In `fun6`
 `bb3, bb4, bb5`, loop until `p->val <= node1->val || p == NULL`
 
-So it is insertion sort.
+So it is a insertion sort.
 
 The input we need to provide should be the 8th biggest value. It's node4 `0xef (239)`.
 ```
@@ -224,14 +216,17 @@ The input we need to provide should be the 8th biggest value. It's node4 `0xef (
 ### Secret Phase
 Well, this is easier than p6, or I'm just luckily hit it.
 
-We need first insert some magic string behind the input of phase 4.
+We need first insert a string behind the input of phase 4.
 ```
 (gdb) x/s 0x8049e5a
 0x8049e5a:      "austinpowers"
 ```
 `secret_phase` calls `fun7` with a new line of input, and ask for a return value of `0x7`.
 
-Randomly check some value in `fun7`, it visits something like `n1`, `n22`. We can find more of these `n[0-9]+` in `symbol_table.txt`. They are `n1`, `n21`, `n22`, `n31`,...,`n34`,...,`n41`, ...,`n48`. If you look into `fun7`, it is search a value on a BST. Each turn left will double the return value, and turn right will double and increase 1. To get `0x7`, we need go all the way right, to `n48`. So the answer should be the value of `n48`, that is `0x3e9 (1001)`
+Randomly check some value in `fun7`, it visits something like `n1`, `n22`. We can find more of these `n[0-9]+` in `symbol_table.txt`. They are `n1`, `n21`, `n22`, `n31`,...,`n34`,...,`n41`, ...,`n48`. If you look into `fun7`, it is search a value on a BST. Each turn left will double the return value, and turn right will double and increase 1. To get `0x7`, we need go all the way right, to `n48`. 
+
+So the answer should be the value of `n48`, that is `0x3e9 (1001)`.
+
 ```
 (gdb) x/a ($edx)
 0x804aa81 <input_strings+481>:  0x30
@@ -248,7 +243,10 @@ Randomly check some value in `fun7`, it visits something like `n1`, `n22`. We ca
 0x804a678 <n48>:        0x3e9
 ```
 
-## Hurray
+## Hurray! 
+
+### Final Result
+
 ```
 $ ./bomb < ./solution.txt 
 Welcome to my fiendish little bomb. You have 6 phases with
@@ -263,3 +261,17 @@ But finding it and solving it are quite different...
 Wow! You've defused the secret stage!
 Congratulations! You've defused the bomb!
 ```
+
+Here is `solution.txt`.
+
+```
+Why make trillions when we could make... billions?
+1 2 6 24 120 720
+7 902
+6 austinpowers
+4 56
+239
+1001
+
+```
+
