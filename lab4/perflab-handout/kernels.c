@@ -364,19 +364,22 @@ void smooth(int dim, pixel *src, pixel *dst)
     // top
     for(i = 1; i < dim-1; i += 1) {
         sum_2x3(dst + RIDX(0, i, dim), dim, src + RIDX(0, i-1, dim));
-    }
-    // bottom
-    for(i = 1; i < dim-1; i += 1) {
         sum_2x3(dst + RIDX(dim-1, i, dim), dim, src + RIDX(dim-2, i-1, dim));
-    }
-    // left
-    for(i = 1; i < dim-1; i += 1) {
         sum_3x2(dst + RIDX(i, 0, dim), dim, src + RIDX(i-1, 0, dim));
-    }
-    // right
-    for(i = 1; i < dim-1; i += 1) {
         sum_3x2(dst + RIDX(i, dim-1, dim), dim, src + RIDX(i-1, dim-2, dim));
+
     }
+    // // bottom
+    // for(i = 1; i < dim-1; i += 1) {
+        
+    // }
+    // // left
+    // for(i = 1; i < dim-1; i += 1) {
+    // }
+    // // right
+    // for(i = 1; i < dim-1; i += 1) {
+        
+    // }
     // top-left
     sum_2x2(dst + RIDX(0,0,dim), dim, src + RIDX(0,0,dim));
     // top-right
