@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "defs.h"
+#define ROTATE_BATCH 8
 
 /* 
  * Please fill in the following team struct 
@@ -45,9 +46,41 @@ void naive_rotate(int dim, pixel *src, pixel *dst)
  * IMPORTANT: This is the version you will be graded on
  */
 char rotate_descr[] = "rotate: Current working version";
+// void rotate(int dim, pixel *src, pixel *dst) 
+// {
+//     int i, j;
+//     int ii, jj;
+//     int ts, td;
+//     pixel *ps=src;
+//     for (i = 0; i < dim; i += 1) {
+//         // ps = src + i;
+//         for (j = 0; j < dim; j += 1) {
+//             dst[RIDX(dim-1-j, i, dim)] = *ps++;
+//         }
+//     }
+// }
+
 void rotate(int dim, pixel *src, pixel *dst) 
 {
-    naive_rotate(dim, src, dst);
+    int i, j;
+    int ii, jj;
+    int ts, td;
+    pixel *ps;
+    for (i = 0; i < dim; i += ROTATE_BATCH) {
+        for (j = 0; j < dim; j += ROTATE_BATCH) {
+            ps = src+i;
+            for (ii = i; ii < i + ROTATE_BATCH; ii += 1, ps+=1) {
+                ts = ii * dim + j;
+                td = (dim-1-j) * dim + ii;
+                for (jj = j; jj < j + ROTATE_BATCH; jj += 1) {
+                    dst[td] = src[ts];
+                    td -= dim;
+                    ts += 1;
+                    // dst[(dim-1-jj)*dim+ii] = src[ii*dim+jj];
+                }
+            }
+        }
+    }
 }
 
 /*********************************************************************
@@ -60,7 +93,7 @@ void rotate(int dim, pixel *src, pixel *dst)
 
 void register_rotate_functions() 
 {
-    add_rotate_function(&naive_rotate, naive_rotate_descr);   
+    // add_rotate_function(&naive_rotate, naive_rotate_descr);   
     add_rotate_function(&rotate, rotate_descr);   
     /* ... Register additional test functions here */
 }
@@ -176,8 +209,8 @@ void smooth(int dim, pixel *src, pixel *dst)
  *********************************************************************/
 
 void register_smooth_functions() {
-    add_smooth_function(&smooth, smooth_descr);
-    add_smooth_function(&naive_smooth, naive_smooth_descr);
+    // add_smooth_function(&smooth, smooth_descr);
+    // add_smooth_function(&naive_smooth, naive_smooth_descr);
     /* ... Register additional test functions here */
 }
 
