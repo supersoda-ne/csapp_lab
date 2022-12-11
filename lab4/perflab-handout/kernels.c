@@ -65,19 +65,50 @@ void rotate(int dim, pixel *src, pixel *dst)
     int i, j;
     int ii, jj;
     int ts, td;
-    pixel *ps;
-    for (i = 0; i < dim; i += ROTATE_BATCH) {
-        for (j = 0; j < dim; j += ROTATE_BATCH) {
-            ps = src+i;
-            for (ii = i; ii < i + ROTATE_BATCH; ii += 1, ps+=1) {
-                ts = ii * dim + j;
-                td = (dim-1-j) * dim + ii;
-                for (jj = j; jj < j + ROTATE_BATCH; jj += 1) {
-                    dst[td] = src[ts];
-                    td -= dim;
-                    ts += 1;
-                    // dst[(dim-1-jj)*dim+ii] = src[ii*dim+jj];
-                }
+    pixel *ps, *pd;
+    for (i = 0; i < dim; i += 8) {
+        for (j = 0; j < dim; j += 8) {
+            
+            for (ii = i; ii < i + 8; ii += 1) {
+                // ts = ii * dim + j;
+                // td = (dim-1-j) * dim + ii;
+                pd = dst + (dim-1-j)*dim+ii;
+                ps = src + ii*dim+j;
+                *pd = *ps++;
+                pd -= dim;
+                *pd = *ps++;
+                pd -= dim;
+                *pd = *ps++;
+                pd -= dim;
+                *pd = *ps++;
+                pd -= dim;
+
+                *pd = *ps++;
+                pd -= dim;
+                *pd = *ps++;
+                pd -= dim;
+                *pd = *ps++;
+                pd -= dim;
+                *pd = *ps;
+
+                // td = (dim-1-j)*dim+ii;
+                // ts = ii*dim+j;
+                // dst[td - 0 * dim] = src[ts+0];
+                // dst[td - 1 * dim] = src[ts+1];
+                // dst[td - 2 * dim] = src[ts+2];
+                // dst[td - 3 * dim] = src[ts+3];
+                // dst[td - 4 * dim] = src[ts+4];
+                // dst[td - 5 * dim] = src[ts+5];
+                // dst[td - 6 * dim] = src[ts+6];
+                // dst[td - 7 * dim] = src[ts+7];
+
+                // for (jj = j; jj < j + ROTATE_BATCH; jj += 1) {
+                //     // dst[td] = src[ts];
+                //     // td -= dim;
+                //     // ts += 1;
+                //     dst[(dim-1-jj)*dim+ii] = src[ii*dim+jj];
+                    
+                // }
             }
         }
     }
