@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "defs.h"
+#include <string.h>
 #define SMOOTH_N 8
 #define ROW_SUM_N (SMOOTH_N + 2)
 /* 
@@ -50,8 +51,7 @@ char rotate_descr[] = "rotate: Current working version";
 void rotate(int dim, pixel *src, pixel *dst) 
 {
     int i, j;
-    int ii, jj;
-    int ts, td;
+    int ii;
     pixel *ps, *pd;
     for (i = 0; i < dim; i += 8) {
         for (j = 0; j < dim; j += 8) {
@@ -241,7 +241,7 @@ static void assign_avg_to_pixel(pixel *current_pixel, pixel_sum sum, int cnt)
     return;
 }
 
-pixel_sum row_sum_space[SMOOTH_N+2][SMOOTH_N+2]={0};
+pixel_sum row_sum_space[ROW_SUM_N][ROW_SUM_N]={0};
 pixel_sum *row_sum = &row_sum_space[1][1];
 /*
  * smooth_NxN - smooth NxN square inside the matrix
@@ -249,7 +249,6 @@ pixel_sum *row_sum = &row_sum_space[1][1];
 static void smooth_NxN(int dim, pixel *src, pixel *dst) {
     int i, j;
     pixel_sum s;
-    pixel_sum t;
     // row sum
     for(i = -1; i < SMOOTH_N+1; i += 1) {
         memset(&s, 0, sizeof(pixel_sum));
