@@ -5,8 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "defs.h"
-#define ROTATE_BATCH 8
-
+#define SMOOTH_N 8
+#define ROW_SUM_N (SMOOTH_N + 2)
 /* 
  * Please fill in the following team struct 
  */
@@ -125,7 +125,7 @@ void rotate(int dim, pixel *src, pixel *dst)
 void register_rotate_functions() 
 {
     // add_rotate_function(&naive_rotate, naive_rotate_descr);   
-    add_rotate_function(&rotate, rotate_descr);   
+    // add_rotate_function(&rotate, rotate_descr);   
     /* ... Register additional test functions here */
 }
 
@@ -220,14 +220,172 @@ void naive_smooth(int dim, pixel *src, pixel *dst)
 	    dst[RIDX(i, j, dim)] = avg(dim, i, j, src);
 }
 
+/* 
+ * add_pixel - Add field values of p in corresponding 
+ * fields of sum 
+ */
+static void add_pixel(pixel_sum *sum, pixel p) 
+{
+    sum->red += (int) p.red;
+    sum->green += (int) p.green;
+    sum->blue += (int) p.blue;
+    return;
+}
+
+/* 
+ * minus_pixel - Minus field values of p in corresponding 
+ * fields of sum 
+ */
+static void minus_pixel(pixel_sum *sum, pixel p) 
+{
+    sum->red -= (int) p.red;
+    sum->green -= (int) p.green;
+    sum->blue -= (int) p.blue;
+    return;
+}
+
+/* 
+ * add_sum - Add field values of p in corresponding 
+ * fields of sum 
+ */
+static void add_sum(pixel_sum *sum, pixel_sum p) 
+{
+    sum->red += p.red;
+    sum->green += p.green;
+    sum->blue += p.blue;
+    return;
+}
+
+/* 
+ * minus_sum - Minus field values of p in corresponding 
+ * fields of sum 
+ */
+static void minus_sum(pixel_sum *sum, pixel_sum p) 
+{
+    sum->red -= p.red;
+    sum->green -= p.green;
+    sum->blue -= p.blue;
+    return;
+}
+
+static void assign_avg_to_pixel(pixel *current_pixel, pixel_sum sum, int cnt) 
+{
+    current_pixel->red = (unsigned short) (sum.red/cnt);
+    current_pixel->green = (unsigned short) (sum.green/cnt);
+    current_pixel->blue = (unsigned short) (sum.blue/cnt);
+    return;
+}
+static void pixel_to_str(char *s, pixel x) {
+    sprintf(s, "(%d, %d, %d)", x.red, x.green, x.blue);
+}
+static void sum_to_str(char *s, pixel_sum x) {
+    sprintf(s, "(%d, %d, %d)", x.red, x.green, x.blue);
+}
+
+pixel_sum row_sum_space[SMOOTH_N+2][SMOOTH_N+2]={0};
+pixel_sum *row_sum = &row_sum_space[1][1];
+/*
+ * smooth_NxN - smooth NxN square inside the matrix
+ */
+static void smooth_NxN(int dim, pixel *src, pixel *dst) {
+    int i, j;
+    pixel_sum s;
+    pixel_sum t;
+    // row sum
+    for(i = -1; i < SMOOTH_N+1; i += 1) {
+        memset(&s, 0, sizeof(pixel_sum));
+        add_pixel(&s, src[RIDX(i, -1, dim)]);
+        add_pixel(&s, src[RIDX(i, 0, dim)]);
+
+        for(j = 0; j < SMOOTH_N; j += 1) {
+            add_pixel(&s, src[RIDX(i, j+1, dim)]);
+            row_sum[RIDX(i, j, ROW_SUM_N)] = s;
+            minus_pixel(&s, src[RIDX(i, j-1, dim)]);
+        }
+    }
+    for(j = 0; j < SMOOTH_N; j += 1) {
+        memset(&s, 0, sizeof(pixel_sum));
+        add_sum(&s, row_sum[RIDX(-1, j, ROW_SUM_N)]);
+        add_sum(&s, row_sum[RIDX(0, j, ROW_SUM_N)]);
+
+        for(i = 0; i < SMOOTH_N; i += 1) {
+            add_sum(&s, row_sum[RIDX(i+1, j, ROW_SUM_N)]);
+            assign_avg_to_pixel(dst + RIDX(i, j, dim), s, 9);
+            minus_sum(&s, row_sum[RIDX(i-1, j, ROW_SUM_N)]);
+        }
+    }
+}
+static void sum_2x2(pixel *res, int dim, pixel *src) {
+    pixel_sum s;
+    memset(&s, 0, sizeof(pixel_sum));
+    add_pixel(&s, src[RIDX(0,0,dim)]); add_pixel(&s, src[RIDX(0,1,dim)]);
+    add_pixel(&s, src[RIDX(1,0,dim)]); add_pixel(&s, src[RIDX(1,1,dim)]);
+    assign_avg_to_pixel(res, s, 4);
+}
+static void sum_2x3(pixel *res, int dim, pixel *src) {
+    pixel_sum s;
+    memset(&s, 0, sizeof(pixel_sum));
+    add_pixel(&s, src[RIDX(0,0,dim)]); add_pixel(&s, src[RIDX(0,1,dim)]); add_pixel(&s, src[RIDX(0,2,dim)]);
+    add_pixel(&s, src[RIDX(1,0,dim)]); add_pixel(&s, src[RIDX(1,1,dim)]); add_pixel(&s, src[RIDX(1,2,dim)]);
+    assign_avg_to_pixel(res, s, 6);
+}
+
+static void sum_3x2(pixel *res, int dim, pixel *src) {
+    pixel_sum s;
+    memset(&s, 0, sizeof(pixel_sum));
+    add_pixel(&s, src[RIDX(0,0,dim)]); add_pixel(&s, src[RIDX(0,1,dim)]);
+    add_pixel(&s, src[RIDX(1,0,dim)]); add_pixel(&s, src[RIDX(1,1,dim)]);
+    add_pixel(&s, src[RIDX(2,0,dim)]); add_pixel(&s, src[RIDX(2,1,dim)]);
+    assign_avg_to_pixel(res, s, 6);
+}
 /*
  * smooth - Your current working version of smooth. 
  * IMPORTANT: This is the version you will be graded on
  */
 char smooth_descr[] = "smooth: Current working version";
+
+char str0[100];
+char str1[100];
+char str2[100];
 void smooth(int dim, pixel *src, pixel *dst) 
-{
-    naive_smooth(dim, src, dst);
+{   
+    int i, j;
+    // printf("$%d$\n", (int)(src-10)->red);
+    // exit(0);
+    // naive_smooth(dim, src, dst);
+    
+    // pixel_sum s;
+
+    for(i = 0; i < dim; i += SMOOTH_N) {
+        for(j = 0; j < dim; j += SMOOTH_N) {
+            smooth_NxN(dim, src + RIDX(i, j, dim), dst + RIDX(i, j, dim));
+        }
+    }
+    // top
+    for(i = 1; i < dim-1; i += 1) {
+        sum_2x3(dst + RIDX(0, i, dim), dim, src + RIDX(0, i-1, dim));
+    }
+    // bottom
+    for(i = 1; i < dim-1; i += 1) {
+        sum_2x3(dst + RIDX(dim-1, i, dim), dim, src + RIDX(dim-2, i-1, dim));
+    }
+    // left
+    for(i = 1; i < dim-1; i += 1) {
+        sum_3x2(dst + RIDX(i, 0, dim), dim, src + RIDX(i-1, 0, dim));
+    }
+    // right
+    for(i = 1; i < dim-1; i += 1) {
+        sum_3x2(dst + RIDX(i, dim-1, dim), dim, src + RIDX(i-1, dim-2, dim));
+    }
+    // top-left
+    sum_2x2(dst + RIDX(0,0,dim), dim, src + RIDX(0,0,dim));
+    // top-right
+    sum_2x2(dst + RIDX(0,dim-1,dim), dim, src + RIDX(0,dim-2,dim));
+    // bottom-left
+    sum_2x2(dst + RIDX(dim-1,0,dim), dim, src + RIDX(dim-2,0,dim));
+    // bottom-right
+    sum_2x2(dst + RIDX(dim-1,dim-1,dim), dim, src + RIDX(dim-2,dim-2,dim));
+
 }
 
 
@@ -240,7 +398,7 @@ void smooth(int dim, pixel *src, pixel *dst)
  *********************************************************************/
 
 void register_smooth_functions() {
-    // add_smooth_function(&smooth, smooth_descr);
+    add_smooth_function(&smooth, smooth_descr);
     // add_smooth_function(&naive_smooth, naive_smooth_descr);
     /* ... Register additional test functions here */
 }
