@@ -153,7 +153,6 @@ int bitXor(int x, int y) {
  */
 int tmin(void) {
   return 1 << 31;
-
 }
 //2
 /*
@@ -164,7 +163,6 @@ int tmin(void) {
  *   Rating: 1
  */
 int isTmax(int x) {
-  
   return (!~((x+1) ^ x)) & !!(x+1);
 }
 /* 
@@ -228,9 +226,9 @@ int isLessOrEqual(int x, int y) {
   int neg_y = (~y) + 1;
   int not_sign_x = !(x & sign);
   int not_sign_y = !(y & sign);
-  int diff_sign = (not_sign_x & not_sign_y) | (!not_sign_x & !not_sign_y);
+  int same_sign = (not_sign_x & not_sign_y) | (!not_sign_x & !not_sign_y);
   return  ((!not_sign_x) & not_sign_y) |
-          (diff_sign & !!((x + neg_y) & sign))|
+          (same_sign & !!((x + neg_y) & sign))|
           !(x^y);
 }
 //4
@@ -264,9 +262,8 @@ int logicalNeg(int x) {
  */
 int howManyBits(int x) {
   int has_bit_32, has_bit_16, has_bit_8, has_bit_4, has_bit_2, has_bit_1;
-  int sign_mask = x >> 31;
-  int abs = (x & ~sign_mask) + (~x & sign_mask);
-  // 7 ops
+  int sign = x >> 31;
+  int abs = (x & ~sign) + (~x & sign);
   has_bit_32 = !!abs;
   has_bit_16 = !!(abs >> 16) << 4;
   abs = abs >> has_bit_16;
@@ -277,7 +274,6 @@ int howManyBits(int x) {
   has_bit_2 = !!(abs >> 2) << 1;
   abs = abs >> has_bit_2;
   has_bit_1 = !!(abs >> 1);
-
   return has_bit_32 + has_bit_16 + has_bit_8 + has_bit_4 + has_bit_2 + has_bit_1 + 1;
 }
 //float
@@ -293,7 +289,6 @@ int howManyBits(int x) {
  *   Rating: 4
  */
 unsigned floatScale2(unsigned uf) {
-  // int positive = !(uf & (1<<31));
   int sign = uf & (1<<31);
   unsigned exponent = (uf & (0xFF << 23)) >> 23;
   unsigned exponent_add1 = exponent + 1;
