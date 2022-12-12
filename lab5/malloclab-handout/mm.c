@@ -55,7 +55,49 @@ team_t team = {
 
 #define SPACE_TO_HEADER(space_ptr) (space_ptr - SIZE_T_SIZE)
 
+// predecessor and successor in explict free list
+#define PRED(header_ptr) (header_ptr + SIZE_T_SIZE)
+#define SUCC(header_ptr) (header_ptr + (SIZE_T_SIZE << 1))
+
+// header + pred_ptr + succ_ptr
+#define PREFIX_SIZE (SIZE_T_SIZE * 3)
+
+#define METADATA_SIZE PREFIX_SIZE
+
 void *free_list_head = NULL;
+
+void delete_node(void **head, void *p) {
+    void *pred = *(size_t *)PRED(p);
+    void *succ = *(size_t *)SUCC(p);
+    if (p == *head) {
+        // head node
+        *head = succ;
+        if (succ != NULL) {
+            *(size_t *)PRED(succ) = NULL;
+        }
+    } else {
+        if (succ != NULL) {
+            *(size_t *)PRED(succ) = pred;
+        }
+        if (pred != NULL) { // Just keep this condition for safety.
+            *(size_t *)SUCC(pred) = succ;
+        }
+    }
+}
+
+void insert_node(void **head, void *p) {
+    void *pred, *succ;
+    if (*head == NULL) {
+        *head = p;
+        *(size_t *)PRED(p) = NULL;
+        *(size_t *)SUCC(p) = NULL;
+    } else {
+        succ = *(size_t *)SUCC(*head);
+        *(size_t *)PRED(p) = NULL;
+        *(size_t *)SUCC(p) = SUCC(*head);
+        
+    }
+}
 /* 
  * mm_init - initialize the malloc package.
  */
@@ -68,22 +110,26 @@ int mm_init(void) {
  *     Always allocate a block whose size is a multiple of the alignment.
  */
 void *mm_malloc(size_t size) {
-    int new_size = ALIGN(size + SIZE_T_SIZE);
+    int new_size = ALIGN(size + METADATA_SIZE);
     int remain_size;
     void * heap_high = mem_heap_hi();
     void *p;
+    void *pred, *succ, *next;
     if (free_list_head != NULL) {
-        for(p = free_list_head; p < heap_high; p = HEADER_TO_NEXT(p)) {
+        for(p = free_list_head; p != NULL && p < heap_high; p = SUCC(p)) {
             if(IS_FREE(p) && BLOCK_SIZE(p) >= new_size) {
                 remain_size = BLOCK_SIZE(p) - new_size;
-                if (remain_size > ALIGN(SIZE_T_SIZE + 1)) {
+                if (remain_size > ALIGN(METADATA_SIZE + 1)) {
                     *(size_t *)p = new_size | 1;
-                    *(size_t *)HEADER_TO_NEXT(p) = remain_size;
+                    next = HEADER_TO_NEXT(p);
+                    *(size_t *)next = remain_size;
+                    *(size_t *)PRED(next) = 
                 } else {
+                    
                     *(size_t *)p |= 1;
                 }
                 
-                return (void *)((char *)p + SIZE_T_SIZE);
+                return (void *)((char *)p + PREFIX_SIZE);
             }
         }
     }
@@ -93,7 +139,7 @@ void *mm_malloc(size_t size) {
 	    return NULL;
     } else {
         *(size_t *)p = new_size | 1;
-        return (void *)((char *)p + SIZE_T_SIZE);
+        return (void *)((char *)p + PREFIX_SIZE);
     }
 }
 
@@ -106,17 +152,22 @@ void mm_free(void *ptr) {
     *(size_t *)ptr = size;
     if (free_list_head == NULL) {
         free_list_head = ptr;
-    } else if (free_list_head > ptr) {
+        *(size_t *)SUCC(ptr) = NULL;
+        *(size_t *)PRED(ptr) = NULL;
+    } else {
+        *(size_t *)SUCC(ptr) = free_list_head;
+        *(size_t *)PRED(ptr) = NULL;
+        *(size_t *)PRED(free_list_head) = ptr;
         free_list_head = ptr;
     }
-    for(ptr = free_list_head; ptr < mem_heap_hi(); ptr = HEADER_TO_NEXT(ptr)) {
-        if(!IS_FREE(ptr)) {
-            continue;
-        }
-        while(HEADER_TO_NEXT(ptr) < mem_heap_hi() && IS_FREE(HEADER_TO_NEXT(ptr))) {
-            *(size_t *)ptr += BLOCK_SIZE(HEADER_TO_NEXT(ptr));
-        }
-    }
+    // for(ptr = free_list_head; ptr < mem_heap_hi(); ptr = HEADER_TO_NEXT(ptr)) {
+    //     if(!IS_FREE(ptr)) {
+    //         continue;
+    //     }
+    //     while(HEADER_TO_NEXT(ptr) < mem_heap_hi() && IS_FREE(HEADER_TO_NEXT(ptr))) {
+    //         *(size_t *)ptr += BLOCK_SIZE(HEADER_TO_NEXT(ptr));
+    //     }
+    // }
 }
 
 /*
@@ -134,31 +185,31 @@ void *mm_realloc(void *ptr, size_t size) {
         mm_free(oldptr);
         return NULL;
     } else {
-        new_size = size + SIZE_T_SIZE;
+        new_size = size + METADATA_SIZE;
         newptr = HEADER_TO_NEXT(oldptr);
-        if (newptr < mem_heap_hi() && IS_FREE(newptr) && BLOCK_SIZE(newptr) + BLOCK_SIZE(oldptr) > new_size) {
-            remain_size = BLOCK_SIZE(newptr) + BLOCK_SIZE(oldptr) - new_size;
-            if (remain_size > ALIGN(SIZE_T_SIZE + 1)) {
-                *(size_t *) oldptr = new_size | 1;
-                *(size_t *) HEADER_TO_NEXT(oldptr) = remain_size;
-            } else {
-                *(size_t *) oldptr = (BLOCK_SIZE(newptr) + BLOCK_SIZE(oldptr)) | 1;
-            }
+        // if (newptr < mem_heap_hi() && IS_FREE(newptr) && BLOCK_SIZE(newptr) + BLOCK_SIZE(oldptr) > new_size) {
+        //     remain_size = BLOCK_SIZE(newptr) + BLOCK_SIZE(oldptr) - new_size;
+        //     if (remain_size > ALIGN(SIZE_T_SIZE + 1)) {
+        //         *(size_t *) oldptr = new_size | 1;
+        //         *(size_t *) HEADER_TO_NEXT(oldptr) = remain_size;
+        //     } else {
+        //         *(size_t *) oldptr = (BLOCK_SIZE(newptr) + BLOCK_SIZE(oldptr)) | 1;
+        //     }
             
-            return oldptr;
-        } else {
+        //     return oldptr;
+        // } else {
             newptr = mm_malloc(size);
             if (newptr == NULL) {
                 return NULL;
             }
-            copy_size = *(size_t *)((char *)oldptr - SIZE_T_SIZE);
+            copy_size = *(size_t *)((char *)oldptr - PREFIX_SIZE);
             if (size < copy_size) {
                 copy_size = size;
             }
             memcpy(newptr, oldptr, copy_size);
             mm_free(oldptr);
             return newptr;
-        }
+        // }
     }
 }
 
