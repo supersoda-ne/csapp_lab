@@ -49,18 +49,40 @@ team_t team = {
 
 #define BLOCK_SIZE(header_ptr) (*(size_t *)header_ptr & ADDR_MASK)
 
-// #define HEADER_TO_FOOTER(header_ptr) (header_ptr + BLOCK_SIZE(header_ptr) - SIZE_T_SIZE)
-
 #define HEADER_TO_NEXT(header_ptr) (header_ptr + BLOCK_SIZE(header_ptr))
 
 #define SPACE_TO_HEADER(space_ptr) (space_ptr - SIZE_T_SIZE)
 
-void *free_list_head = NULL;
 /* 
  * mm_init - initialize the malloc package.
  */
 int mm_init(void) {
     return 0;
+}
+
+void * search_with_gc(size_t new_size) {
+    void *p, *heap_high = mem_heap_hi();
+    void *last_match;
+    int match_num = 0;
+    for(p = mem_heap_lo(); p < heap_high; p = HEADER_TO_NEXT(p)) {
+        if(!IS_FREE(p)) {
+            continue;
+        }
+        while(HEADER_TO_NEXT(p) < heap_high && IS_FREE(HEADER_TO_NEXT(p))) {
+            *(size_t *)p += BLOCK_SIZE(HEADER_TO_NEXT(p));
+        }
+        if (BLOCK_SIZE(p) >= new_size) {
+            last_match = p;
+            match_num += 1;
+        }
+        if (match_num >= 2) {
+            break;
+        }
+    }
+    if(match_num > 0) {
+        return last_match;
+    }
+    return NULL;
 }
 
 /* 
@@ -70,27 +92,21 @@ int mm_init(void) {
 void *mm_malloc(size_t size) {
     int new_size = ALIGN(size + SIZE_T_SIZE);
     int remain_size;
-    void * heap_high = mem_heap_hi();
-    void *p;
-    if (free_list_head != NULL) {
-        for(p = free_list_head; p < heap_high; p = HEADER_TO_NEXT(p)) {
-            if(IS_FREE(p) && BLOCK_SIZE(p) >= new_size) {
-                remain_size = BLOCK_SIZE(p) - new_size;
-                if (remain_size > ALIGN(SIZE_T_SIZE + 1)) {
-                    *(size_t *)p = new_size | 1;
-                    *(size_t *)HEADER_TO_NEXT(p) = remain_size;
-                } else {
-                    *(size_t *)p |= 1;
-                }
-                
-                return (void *)((char *)p + SIZE_T_SIZE);
-            }
+    int heap_incr;
+    void *p = search_with_gc(new_size);
+    if (p != NULL) {
+        remain_size = BLOCK_SIZE(p) - new_size;
+        if (remain_size > ALIGN(SIZE_T_SIZE + 1)) {
+            *(size_t *)p = new_size | 1;
+            *(size_t *)HEADER_TO_NEXT(p) = remain_size;
+        } else {
+            *(size_t *)p |= 1;
         }
+        return (void *)((char *)p + SIZE_T_SIZE);
     }
-
     p = mem_sbrk(new_size);
     if (p < 0) {
-	    return NULL;
+        return NULL;
     } else {
         *(size_t *)p = new_size | 1;
         return (void *)((char *)p + SIZE_T_SIZE);
@@ -102,21 +118,7 @@ void *mm_malloc(size_t size) {
  */
 void mm_free(void *ptr) {
     ptr = SPACE_TO_HEADER(ptr);
-    size_t size = BLOCK_SIZE(ptr);
-    *(size_t *)ptr = size;
-    if (free_list_head == NULL) {
-        free_list_head = ptr;
-    } else if (free_list_head > ptr) {
-        free_list_head = ptr;
-    }
-    for(ptr = free_list_head; ptr < mem_heap_hi(); ptr = HEADER_TO_NEXT(ptr)) {
-        if(!IS_FREE(ptr)) {
-            continue;
-        }
-        while(HEADER_TO_NEXT(ptr) < mem_heap_hi() && IS_FREE(HEADER_TO_NEXT(ptr))) {
-            *(size_t *)ptr += BLOCK_SIZE(HEADER_TO_NEXT(ptr));
-        }
-    }
+    *(size_t *)ptr = BLOCK_SIZE(ptr);
 }
 
 /*
