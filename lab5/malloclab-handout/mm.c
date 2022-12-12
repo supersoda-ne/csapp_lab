@@ -60,7 +60,7 @@ int mm_init(void) {
     return 0;
 }
 
-void * search_with_gc(size_t new_size) {
+void *search_with_gc(size_t new_size) {
     void *p, *heap_high = mem_heap_hi();
     void *last_match;
     int match_num = 0;
