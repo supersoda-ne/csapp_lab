@@ -73,9 +73,7 @@ void *mm_malloc(size_t size) {
     void * heap_high = mem_heap_hi();
     void *p;
     if (free_list_head != NULL) {
-        // printf("Search for space size: %x\n", new_size);
         for(p = free_list_head; p < heap_high; p = HEADER_TO_NEXT(p)) {
-            // printf("p (p, header, free, size): (%p, %x, %1d, %x)\n", p, *(size_t *)p, IS_FREE(p), BLOCK_SIZE(p));
             if(IS_FREE(p) && BLOCK_SIZE(p) >= new_size) {
                 remain_size = BLOCK_SIZE(p) - new_size;
                 if (remain_size > ALIGN(SIZE_T_SIZE + 1)) {
@@ -85,7 +83,6 @@ void *mm_malloc(size_t size) {
                     *(size_t *)p |= 1;
                 }
                 
-                // printf("Found free space\n");
                 return (void *)((char *)p + SIZE_T_SIZE);
             }
         }
@@ -93,7 +90,6 @@ void *mm_malloc(size_t size) {
 
     p = mem_sbrk(new_size);
     if (p < 0) {
-        // printf("NO FREE SPACE!\n");
 	    return NULL;
     } else {
         *(size_t *)p = new_size | 1;
@@ -106,10 +102,7 @@ void *mm_malloc(size_t size) {
  */
 void mm_free(void *ptr) {
     ptr = SPACE_TO_HEADER(ptr);
-    // printf("Try to free %p\n", ptr);
     size_t size = BLOCK_SIZE(ptr);
-    // printf("BLOCK_SIZE:%x\n", size);
-    // printf("mem_heap_hi:%p\n", mem_heap_hi());
     *(size_t *)ptr = size;
     if (free_list_head == NULL) {
         free_list_head = ptr;
