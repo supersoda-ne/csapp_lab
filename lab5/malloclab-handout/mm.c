@@ -45,7 +45,7 @@ team_t team = {
 
 #define ADDR_MASK (~0b11)
 
-#define IS_FREE(header_ptr) (*(size_t *)header_ptr & 1)
+#define IS_FREE(header_ptr) ((~*(size_t *)header_ptr) & 1)
 
 #define BLOCK_SIZE(header_ptr) (*(size_t *)header_ptr & ADDR_MASK)
 
@@ -68,27 +68,35 @@ int mm_init(void) {
  *     Always allocate a block whose size is a multiple of the alignment.
  */
 void *mm_malloc(size_t size) {
-    int newsize = ALIGN(size + SIZE_T_SIZE);
-    
+    int new_size = ALIGN(size + SIZE_T_SIZE);
+    int remain_size;
+    void * heap_high = mem_heap_hi();
     void *p;
     if (free_list_head != NULL) {
-        printf("Search for space size: %x\n", newsize);
-        for(p = free_list_head; p < mem_heap_hi(); p = HEADER_TO_NEXT(p)) {
-            printf("p (free, size): (%1d, %x)\n", IS_FREE(p), BLOCK_SIZE(p));
-            if(IS_FREE(p) && BLOCK_SIZE(p) > newsize) {
-                *(size_t *)p |= 1;
-                printf("Found free space\n");
+        // printf("Search for space size: %x\n", new_size);
+        for(p = free_list_head; p < heap_high; p = HEADER_TO_NEXT(p)) {
+            // printf("p (p, header, free, size): (%p, %x, %1d, %x)\n", p, *(size_t *)p, IS_FREE(p), BLOCK_SIZE(p));
+            if(IS_FREE(p) && BLOCK_SIZE(p) >= new_size) {
+                remain_size = BLOCK_SIZE(p) - new_size;
+                if (remain_size > ALIGN(SIZE_T_SIZE + 1)) {
+                    *(size_t *)p = new_size | 1;
+                    *(size_t *)HEADER_TO_NEXT(p) = remain_size;
+                } else {
+                    *(size_t *)p |= 1;
+                }
+                
+                // printf("Found free space\n");
                 return (void *)((char *)p + SIZE_T_SIZE);
             }
         }
     }
 
-    p = mem_sbrk(newsize);
-    if ((int)p < 0) {
-        printf("NO FREE SPACE!\n");
+    p = mem_sbrk(new_size);
+    if (p < 0) {
+        // printf("NO FREE SPACE!\n");
 	    return NULL;
     } else {
-        *(size_t *)p = newsize | 1;
+        *(size_t *)p = new_size | 1;
         return (void *)((char *)p + SIZE_T_SIZE);
     }
 }
@@ -98,10 +106,10 @@ void *mm_malloc(size_t size) {
  */
 void mm_free(void *ptr) {
     ptr = SPACE_TO_HEADER(ptr);
-    printf("Try to free %p\n", ptr);
+    // printf("Try to free %p\n", ptr);
     size_t size = BLOCK_SIZE(ptr);
-    printf("BLOCK_SIZE:%x\n", size);
-    printf("mem_heap_hi:%p\n", mem_heap_hi());
+    // printf("BLOCK_SIZE:%x\n", size);
+    // printf("mem_heap_hi:%p\n", mem_heap_hi());
     *(size_t *)ptr = size;
     if (free_list_head == NULL) {
         free_list_head = ptr;
@@ -124,19 +132,41 @@ void mm_free(void *ptr) {
 void *mm_realloc(void *ptr, size_t size) {
     void *oldptr = ptr;
     void *newptr;
-    size_t copySize;
-    
-    newptr = mm_malloc(size);
-    if (newptr == NULL) {
+    size_t copy_size;
+    size_t new_size;
+    size_t remain_size;
+    if(oldptr == NULL) {
+        return mm_malloc(size);
+    } else if (size == 0) {
+        mm_free(oldptr);
         return NULL;
+    } else {
+        new_size = size + SIZE_T_SIZE;
+        newptr = HEADER_TO_NEXT(oldptr);
+        if (newptr < mem_heap_hi() && IS_FREE(newptr) && BLOCK_SIZE(newptr) + BLOCK_SIZE(oldptr) > new_size) {
+            remain_size = BLOCK_SIZE(newptr) + BLOCK_SIZE(oldptr) - new_size;
+            if (remain_size > ALIGN(SIZE_T_SIZE + 1)) {
+                *(size_t *) oldptr = new_size | 1;
+                *(size_t *) HEADER_TO_NEXT(oldptr) = remain_size;
+            } else {
+                *(size_t *) oldptr = (BLOCK_SIZE(newptr) + BLOCK_SIZE(oldptr)) | 1;
+            }
+            
+            return oldptr;
+        } else {
+            newptr = mm_malloc(size);
+            if (newptr == NULL) {
+                return NULL;
+            }
+            copy_size = *(size_t *)((char *)oldptr - SIZE_T_SIZE);
+            if (size < copy_size) {
+                copy_size = size;
+            }
+            memcpy(newptr, oldptr, copy_size);
+            mm_free(oldptr);
+            return newptr;
+        }
     }
-    copySize = *(size_t *)((char *)oldptr - SIZE_T_SIZE);
-    if (size < copySize) {
-        copySize = size;
-    }
-    memcpy(newptr, oldptr, copySize);
-    mm_free(oldptr);
-    return newptr;
 }
 
 
