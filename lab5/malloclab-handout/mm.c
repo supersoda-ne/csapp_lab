@@ -43,6 +43,19 @@ team_t team = {
 
 #define SIZE_T_SIZE (ALIGN(sizeof(size_t)))
 
+#define ADDR_MASK (~0b11)
+
+#define IS_FREE(header_ptr) (*(size_t *)header_ptr & 1)
+
+#define BLOCK_SIZE(header_ptr) (*(size_t *)header_ptr & ADDR_MASK)
+
+// #define HEADER_TO_FOOTER(header_ptr) (header_ptr + BLOCK_SIZE(header_ptr) - SIZE_T_SIZE)
+
+#define HEADER_TO_NEXT(header_ptr) (header_ptr + BLOCK_SIZE(header_ptr))
+
+#define SPACE_TO_HEADER(space_ptr) (space_ptr - SIZE_T_SIZE)
+
+void *free_list_head = NULL;
 /* 
  * mm_init - initialize the malloc package.
  */
@@ -56,11 +69,26 @@ int mm_init(void) {
  */
 void *mm_malloc(size_t size) {
     int newsize = ALIGN(size + SIZE_T_SIZE);
-    void *p = mem_sbrk(newsize);
+    
+    void *p;
+    if (free_list_head != NULL) {
+        printf("Search for space size: %x\n", newsize);
+        for(p = free_list_head; p < mem_heap_hi(); p = HEADER_TO_NEXT(p)) {
+            printf("p (free, size): (%1d, %x)\n", IS_FREE(p), BLOCK_SIZE(p));
+            if(IS_FREE(p) && BLOCK_SIZE(p) > newsize) {
+                *(size_t *)p |= 1;
+                printf("Found free space\n");
+                return (void *)((char *)p + SIZE_T_SIZE);
+            }
+        }
+    }
+
+    p = mem_sbrk(newsize);
     if ((int)p < 0) {
+        printf("NO FREE SPACE!\n");
 	    return NULL;
     } else {
-        *(size_t *)p = size;
+        *(size_t *)p = newsize | 1;
         return (void *)((char *)p + SIZE_T_SIZE);
     }
 }
@@ -69,6 +97,25 @@ void *mm_malloc(size_t size) {
  * mm_free - Freeing a block does nothing.
  */
 void mm_free(void *ptr) {
+    ptr = SPACE_TO_HEADER(ptr);
+    printf("Try to free %p\n", ptr);
+    size_t size = BLOCK_SIZE(ptr);
+    printf("BLOCK_SIZE:%x\n", size);
+    printf("mem_heap_hi:%p\n", mem_heap_hi());
+    *(size_t *)ptr = size;
+    if (free_list_head == NULL) {
+        free_list_head = ptr;
+    } else if (free_list_head > ptr) {
+        free_list_head = ptr;
+    }
+    for(ptr = free_list_head; ptr < mem_heap_hi(); ptr = HEADER_TO_NEXT(ptr)) {
+        if(!IS_FREE(ptr)) {
+            continue;
+        }
+        while(HEADER_TO_NEXT(ptr) < mem_heap_hi() && IS_FREE(HEADER_TO_NEXT(ptr))) {
+            *(size_t *)ptr += BLOCK_SIZE(HEADER_TO_NEXT(ptr));
+        }
+    }
 }
 
 /*
