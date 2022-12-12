@@ -146,7 +146,6 @@ void *mm_realloc(void *ptr, size_t size) {
             } else {
                 *(size_t *) oldptr = (BLOCK_SIZE(newptr) + BLOCK_SIZE(oldptr)) | 1;
             }
-            
             return oldptr;
         } else {
             newptr = mm_malloc(size);
